@@ -25,6 +25,7 @@ static HT_Item TOMBSTONE = {.key = NULL, .value = NULL};
 HashTable *ht_init();
 
 void ht_add(HashTable *ht, char *key, void *value);
+void *ht_get(HashTable *ht, char *key);
 
 // #ifdef HASH_TABLE_IMPLEMENTATION
 
