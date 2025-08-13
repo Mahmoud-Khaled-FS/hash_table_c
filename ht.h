@@ -23,7 +23,7 @@ typedef struct
 
 static HT_Item TOMBSTONE = {.key = NULL, .value = NULL};
 #define HT_MAX_LOAD 0.7f
-#define HT_INIT_CAP 17
+#define HT_INIT_CAP 8
 
 HashTable *ht_init();
 
@@ -68,11 +68,12 @@ void ht_inc_cap(HashTable *ht)
     if (!ht->items[i] || ht->items[i] == &TOMBSTONE)
       continue;
     uint32_t hash = fnv1a_hash(item->key);
+    uint32_t hash2 = 1 + (hash % (new_cap - 1));
     uint32_t index;
     uint32_t j = 0;
     while (j < new_cap)
     {
-      index = (hash + j * j) % new_cap;
+      index = (hash + j * hash2) % new_cap;
       if (new_items_ptr[index] == NULL)
       {
         new_items_ptr[index] = item;
@@ -93,14 +94,13 @@ void ht_add(HashTable *ht, char *key, void *value)
     ht_inc_cap(ht);
   }
   uint32_t hash = fnv1a_hash(key);
-  // TODO (MAHMOUD) - Use 2 Hash insted of Quadratic Probing
+  uint32_t hash2 = 1 + (hash % (ht->cap - 1));
   uint32_t index;
   uint32_t i = 0;
   int32_t first_tombstone = -1;
   while (i < ht->cap)
   {
-    index = (hash + i * i) % ht->cap;
-    printf("---->%s: try = %d hash = %ld\n", key, index, hash);
+    index = (hash + i * hash2) % ht->cap;
     if (ht->items[index] == NULL)
     {
       break;
@@ -126,7 +126,6 @@ void ht_add(HashTable *ht, char *key, void *value)
   {
     index = first_tombstone;
   }
-  printf("key: %s, index: %ld\n", key, index);
   ht->items[index] = malloc(sizeof(HT_Item));
   ht->items[index]->key = strdup(key);
   ht->items[index]->value = value;
@@ -137,12 +136,13 @@ void ht_add(HashTable *ht, char *key, void *value)
 void *ht_get(HashTable *ht, char *key)
 {
   uint32_t hash = fnv1a_hash(key);
+  uint32_t hash2 = 1 + (hash % (ht->cap - 1));
   uint32_t index;
   uint32_t i = 0;
 
   while (i < ht->cap)
   {
-    index = (hash + i * i) % ht->cap;
+    index = (hash + i * hash2) % ht->cap;
     HT_Item *item = ht->items[index];
     if (item == NULL)
     {
@@ -166,12 +166,13 @@ void *ht_get(HashTable *ht, char *key)
 bool ht_has(HashTable *ht, char *key)
 {
   uint32_t hash = fnv1a_hash(key);
+  uint32_t hash2 = 1 + (hash % (ht->cap - 1));
   uint32_t index;
   uint32_t i = 0;
 
   while (i < ht->cap)
   {
-    index = (hash + i * i) % ht->cap;
+    index = (hash + i * hash2) % ht->cap;
     HT_Item *item = ht->items[index];
     if (item == NULL)
     {
