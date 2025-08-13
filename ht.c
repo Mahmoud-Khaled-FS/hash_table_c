@@ -12,8 +12,11 @@ int main()
   ht_add(ht, "six", (void *)"6");
   ht_add(ht, "seven", (void *)"7");
   ht_add(ht, "eight", (void *)"8");
-  // ht_add(ht, "nine", (void *)"9");
+  ht_add(ht, "nine", (void *)"9");
   ht_add(ht, "one", (void *)"10");
+
+  printf("Len: %d, Cap: %ld\n", ht->len, ht->cap);
+
   printf("%s\n", (char *)ht_get(ht, "one"));
   printf("%s\n", (char *)ht_get(ht, "two"));
   printf("%s\n", (char *)ht_get(ht, "three"));
@@ -22,6 +25,22 @@ int main()
   printf("%s\n", (char *)ht_get(ht, "six"));
   printf("%s\n", (char *)ht_get(ht, "seven"));
   printf("%s\n", (char *)ht_get(ht, "eight"));
+
+  uint32_t size;
+  char **keys = ht_keys(ht, &size);
+  printf("Keys Size: %d\n", size);
+
+  for (int i = 0; i < size; i++)
+  {
+    printf("\tkey: %s\n", keys[i]);
+  }
+  void **values = ht_values(ht, &size);
+  printf("Values Size: %d\n", size);
+  for (int i = 0; i < size; i++)
+  {
+    printf("\tValue: %s\n", (char *)values[i]);
+  }
+
   // printf("%s\n", (char *)ht_get(ht, "nine"));
   return 0;
 }
