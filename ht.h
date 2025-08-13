@@ -26,12 +26,12 @@ static HT_Item TOMBSTONE = {.key = NULL, .value = NULL};
 #define HT_INIT_CAP 8
 
 HashTable *ht_init();
-
 void ht_add(HashTable *ht, char *key, void *value);
 void *ht_get(HashTable *ht, char *key);
 bool ht_has(HashTable *ht, char *key);
 char **ht_keys(HashTable *ht, uint32_t *size);
 void **ht_values(HashTable *ht, uint32_t *size);
+void ht_delete(HashTable *ht, char *key);
 void ht_free(HashTable **ht);
 
 // #ifdef HASH_TABLE_IMPLEMENTATION
@@ -219,6 +219,39 @@ void **ht_values(HashTable *ht, uint32_t *size)
   }
   *size = items_index;
   return values;
+}
+
+void ht_delete(HashTable *ht, char *key)
+{
+  uint32_t hash = fnv1a_hash(key);
+  uint32_t hash2 = 1 + (hash % (ht->cap - 1));
+  uint32_t index;
+  uint32_t i = 0;
+
+  while (i < ht->cap)
+  {
+    index = (hash + i * hash2) % ht->cap;
+    HT_Item *item = ht->items[index];
+    if (item == NULL)
+    {
+      return;
+    }
+
+    if (item == &TOMBSTONE)
+    {
+      i++;
+      continue;
+    }
+    if (strcmp(item->key, key) == 0)
+    {
+      free(ht->items[index]->key);
+      free(ht->items[index]);
+      ht->items[index] = &TOMBSTONE;
+      return;
+    }
+    i++;
+  }
+  return;
 }
 
 void ht_free(HashTable **ht_ptr)

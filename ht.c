@@ -15,10 +15,12 @@ int main()
   ht_add(ht, "nine", (void *)"9");
   ht_add(ht, "one", (void *)"10");
 
+  ht_delete(ht, "two");
+
   printf("Len: %d, Cap: %ld\n", ht->len, ht->cap);
 
   printf("%s\n", (char *)ht_get(ht, "one"));
-  printf("%s\n", (char *)ht_get(ht, "two"));
+  printf("has two? %d\n", ht_has(ht, "two"));
   printf("%s\n", (char *)ht_get(ht, "three"));
   printf("%s\n", (char *)ht_get(ht, "four"));
   printf("%s\n", (char *)ht_get(ht, "five"));
