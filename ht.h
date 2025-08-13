@@ -93,6 +93,7 @@ void ht_add(HashTable *ht, char *key, void *value)
     ht_inc_cap(ht);
   }
   uint32_t hash = fnv1a_hash(key);
+  // TODO (MAHMOUD) - Use 2 Hash insted of Quadratic Probing
   uint32_t index;
   uint32_t i = 0;
   int32_t first_tombstone = -1;
