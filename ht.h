@@ -2,7 +2,6 @@
 #define HT_H
 
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -19,14 +18,51 @@ typedef struct
   HT_Item **items;
   size_t len;
   size_t cap;
+  size_t cap_index;
 } HashTable;
 
 static HT_Item TOMBSTONE = {.key = NULL, .value = NULL};
+
+#define CAPSIZE 26
+
+static uint32_t cap_size[CAPSIZE] = {
+    53,
+    97,
+    193,
+    389,
+    769,
+    1543,
+    3079,
+    6151,
+    12289,
+    24593,
+    49157,
+    98317,
+    196613,
+    393241,
+    786433,
+    1572869,
+    3145739,
+    6291469,
+    12582917,
+    25165843,
+    50331653,
+    100663319,
+    201326611,
+    402653189,
+    805306457,
+    1610612741,
+};
+
 #define HT_MAX_LOAD 0.7f
-#define HT_INIT_CAP 8
+
+#define HT_INIT_CAP cap_size[0]
+
+#define HASH2(hash, cap) (1 + (hash % (cap - 1)))
 
 HashTable *ht_init();
 void ht_add(HashTable *ht, char *key, void *value);
+void ht_inc_cap(HashTable *ht);
 void *ht_get(HashTable *ht, char *key);
 bool ht_has(HashTable *ht, char *key);
 char **ht_keys(HashTable *ht, uint32_t *size);
@@ -34,7 +70,7 @@ void **ht_values(HashTable *ht, uint32_t *size);
 void ht_delete(HashTable *ht, char *key);
 void ht_free(HashTable **ht);
 
-// #ifdef HASH_TABLE_IMPLEMENTATION
+#ifdef HASH_TABLE_IMPLEMENTATION
 
 uint32_t fnv1a_hash(char *key)
 {
@@ -51,16 +87,22 @@ uint32_t fnv1a_hash(char *key)
 HashTable *ht_init()
 {
   HashTable *ht = (HashTable *)malloc(sizeof(HashTable));
-  ht->items = (HT_Item **)malloc(sizeof(HT_Item *) * HT_INIT_CAP);
+  ht->items = (HT_Item **)calloc(HT_INIT_CAP, sizeof(HT_Item *));
   ht->len = 0;
   ht->cap = HT_INIT_CAP;
+  ht->cap_index = 0;
   return ht;
 }
 
 void ht_inc_cap(HashTable *ht)
 {
-  uint32_t new_cap = ht->cap * 2;
-  HT_Item **new_items_ptr = (HT_Item **)malloc(sizeof(HT_Item *) * new_cap);
+  if (ht->cap_index + 1 == CAPSIZE)
+  {
+    fprintf(stderr, "Hash table capacity overflow\n");
+    exit(1);
+  }
+  uint32_t new_cap = cap_size[++ht->cap_index];
+  HT_Item **new_items_ptr = (HT_Item **)calloc(new_cap, sizeof(HT_Item *));
 
   for (uint32_t i = 0; i < ht->cap; i++)
   {
@@ -68,12 +110,13 @@ void ht_inc_cap(HashTable *ht)
     if (!ht->items[i] || ht->items[i] == &TOMBSTONE)
       continue;
     uint32_t hash = fnv1a_hash(item->key);
-    uint32_t hash2 = 1 + (hash % (new_cap - 1));
+    uint32_t hash2 = HASH2(hash, new_cap);
     uint32_t index;
     uint32_t j = 0;
     while (j < new_cap)
     {
       index = (hash + j * hash2) % new_cap;
+
       if (new_items_ptr[index] == NULL)
       {
         new_items_ptr[index] = item;
@@ -94,7 +137,7 @@ void ht_add(HashTable *ht, char *key, void *value)
     ht_inc_cap(ht);
   }
   uint32_t hash = fnv1a_hash(key);
-  uint32_t hash2 = 1 + (hash % (ht->cap - 1));
+  uint32_t hash2 = HASH2(hash, ht->cap);
   uint32_t index;
   uint32_t i = 0;
   int32_t first_tombstone = -1;
@@ -126,6 +169,7 @@ void ht_add(HashTable *ht, char *key, void *value)
   {
     index = first_tombstone;
   }
+
   ht->items[index] = malloc(sizeof(HT_Item));
   ht->items[index]->key = strdup(key);
   ht->items[index]->value = value;
@@ -136,7 +180,7 @@ void ht_add(HashTable *ht, char *key, void *value)
 void *ht_get(HashTable *ht, char *key)
 {
   uint32_t hash = fnv1a_hash(key);
-  uint32_t hash2 = 1 + (hash % (ht->cap - 1));
+  uint32_t hash2 = HASH2(hash, ht->cap);
   uint32_t index;
   uint32_t i = 0;
 
@@ -166,7 +210,7 @@ void *ht_get(HashTable *ht, char *key)
 bool ht_has(HashTable *ht, char *key)
 {
   uint32_t hash = fnv1a_hash(key);
-  uint32_t hash2 = 1 + (hash % (ht->cap - 1));
+  uint32_t hash2 = HASH2(hash, ht->cap);
   uint32_t index;
   uint32_t i = 0;
 
@@ -224,7 +268,7 @@ void **ht_values(HashTable *ht, uint32_t *size)
 void ht_delete(HashTable *ht, char *key)
 {
   uint32_t hash = fnv1a_hash(key);
-  uint32_t hash2 = 1 + (hash % (ht->cap - 1));
+  uint32_t hash2 = HASH2(hash, ht->cap);
   uint32_t index;
   uint32_t i = 0;
 
@@ -269,8 +313,8 @@ void ht_free(HashTable **ht_ptr)
   free(ht->items);
   free(ht);
   *ht_ptr = NULL;
-};
+}
 
-// #endif
+#endif
 
 #endif
